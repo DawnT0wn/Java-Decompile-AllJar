@@ -29,3 +29,26 @@ BeanMap$2.class
 
 对于以上情况java-decompiler.jar只会反编译BeanMap.class
 
+# class2java.py
+
+此脚本用于将一个目录下的class文件，按照项目结构反编译后移动java到新的目录，便于重构项目
+
+## Usage
+
+确保你的系统已经安装了 Python 3 和所需的依赖。
+
+```bash
+python3 class2java.py source_directory output_directory
+```
+
+## 注意事项
+
+- 脚本需要注意给定目录的结构，如要把com这个package重构，就需要指定com的上层目录，然后得到的新目录下才是java文件的com包
+
+
+
+
+
+参考链接：
+
+https://github.com/waderwu/extractor-java
