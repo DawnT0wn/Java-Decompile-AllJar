@@ -1,8 +1,8 @@
 import os
-import shutil
 import subprocess
 import concurrent.futures
 import sys  # 导入 sys 模块以访问命令行参数
+import threading
 
 # 从命令行参数中获取原始 JAR 文件目录和目标目录
 if len(sys.argv) != 3:
@@ -29,28 +29,9 @@ def process_jar(jar_file):
     target_dir = os.path.join(output_directory, jar_file_name)
     os.makedirs(target_dir, exist_ok=True)
 
-    # unizp 解压 JAR 文件到目标目录
-    # subprocess.run(["unzip", "-d", target_dir, jar_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # 解压 JAR 文件到目标目录
+    subprocess.run(["tar", "-xvf", jar_file, "-C", target_dir], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    # jar 解压 复制 JAR 文件到目标目录
-    shutil.copy(jar_file, target_dir)
-
-    # 获取当前目录
-    original_directory = os.getcwd()
-
-    # 切换到 JAR 文件所在的目录
-    os.chdir(target_dir)
-
-    # 使用 jar 命令解压 JAR 文件到当前目录
-    result = subprocess.run(["jar", "-xvf", f"{jar_file_name}.jar"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if result.returncode != 0:
-        print(f"Error: {result.stderr.decode('utf-8')}")
-
-    # 返回到原始目录
-    os.chdir(original_directory)
-
-    # 删除copy的jar包
-    os.remove(os.path.join(target_dir, f"{jar_file_name}.jar"))
     # 构建反编译命令
     decompile_command = f"java -cp java-decompiler.jar org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler -hdc=0 -dgs=1 -rsy=1 -rbr=1 -lit=1 -nls=1 -mpm=60 {target_dir} {target_dir}"
 
@@ -59,6 +40,13 @@ def process_jar(jar_file):
 
 # 使用多线程处理所有 JAR 文件
 with concurrent.futures.ThreadPoolExecutor() as executor:
-    executor.map(process_jar, jar_files)
+    # 创建并启动线程来处理每个 JAR 文件
+    threads = [threading.Thread(target=process_jar, args=(jar_file,)) for jar_file in jar_files]
+    for thread in threads:
+        thread.start()
+
+    # 主线程等待所有线程完成
+    for thread in threads:
+        thread.join()
 
 # 至此，所有 .class 文件都已经被反编译并按照 lib 目录下的层级组织在相应的文件夹中
